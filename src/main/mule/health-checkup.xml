@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="dc861fa7-f05d-424c-af3f-c96b2f04bff9" >
+		<file:connection workingDir="E:\TEST" />
+	</file:config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="20fd8df6-ff67-40b4-a6d4-944192352e39" >
+		<salesforce:basic-connection username="${secure::Salesforce.username}" password="${secure::Salesforce.password}" securityToken="${secure::Salesforce.Stoken}" />
+	</salesforce:sfdc-config>
+	<s3:config name="Amazon_S3_Configuration" doc:name="Amazon S3 Configuration" doc:id="bd51e09d-91f6-463b-be78-40c1d0c68877" >
+		<s3:connection accessKey="${s3.access}" secretKey="${s3.secret}"/>
+	</s3:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="e364625c-4bb2-4829-83ac-270e69026ece" file="properties folder\dev.properties" />
+	<configuration-properties doc:name="Configuration properties" doc:id="b5f35046-a722-40b7-b360-dc7a26b55799" file="properties folder\dev.properties"/>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="f5a799e9-d3e4-4ce4-a6a2-f26c4a561b6d" file="properties folder\encrypysecure.yaml" key="mule">
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<flow name="health-checkupFlow" doc:id="4d912430-ca41-4389-96bc-6136f9067b76" >
+		<logger level="INFO" doc:name="start_Logger" doc:id="c44f29b0-9473-4b73-956f-9d20691833ac" message="start flow"/>
+		<logger level="DEBUG" doc:name="DEBUG_Logger" doc:id="96e7b7e1-57f2-45ac-8b07-51e48487d604" message="#[payload]"/>
+		<logger level="ERROR" doc:name="ERROR_Logger" doc:id="5d3eba43-669e-468a-a1db-f6487a7e9daa" message="#[payload]"/>
+		<scatter-gather doc:name="Aggregate the response ofScatter-Gather" doc:id="b7fcefed-5c81-478d-8969-3c813c945ba1" >
+			<route >
+				<try doc:name="Try" doc:id="adf76200-6d6b-4e95-bf35-e7557aecb4e5" >
+					<logger level="INFO" doc:name="Salesforce-Logger" doc:id="7268a104-c817-438a-8437-d9126de6a959" message="Salesforce-health_checkup" />
+					<logger level="INFO" doc:name="Before Salesforce_Logger" doc:id="09e53c41-e738-47ec-9bda-6a17323e4fba" message="Before Salesforce" />
+					<salesforce:get-server-timestamp doc:name="Get server timestamp" doc:id="461ef149-eeff-48d5-b724-d9e96c08988b" config-ref="Salesforce_Config" />
+					<ee:transform doc:name="Transform Message" doc:id="cdb027e9-681f-4c24-a836-91188736eea7">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Message": "The salesforce server is up and running",
+	"username": "Salesforce123"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+					<logger level="INFO" doc:name="Logger" doc:id="d423b9b6-a78a-4d80-8a91-73192eff1512" message="#[payload]" />
+					<logger level="INFO" doc:name="After Salesforce_Logger" doc:id="613a187d-3cfa-4fc1-a749-e4de90f941a7" message="After Salesforce" />
+					<error-handler>
+						<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="bc5979e4-420c-43a9-bf37-1677aa758621" type="ANY">
+							<ee:transform doc:name="Transform Message" doc:id="48228ac6-658d-4042-a2bd-6523c589162d" >
+								<ee:message >
+									<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"msg": "error in Salesforce",
+	"contact team": "please connect to It support team"
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+							<logger level="INFO" doc:name="Logger" doc:id="0d809f24-0f36-45e7-9a74-24bfa73df7dd" message="#[payload]"/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+			</route>
+			<route >
+				<try doc:name="Try" doc:id="084e9ec9-b7c2-4684-a2cf-251929a029d4" >
+					<logger level="INFO" doc:name="S3_Logger" doc:id="49a5c58a-a88a-4722-9641-e050ac190a92" message="S3-health_checkup" />
+					<logger level="INFO" doc:name="Before S3_Logger" doc:id="f015c8da-57ad-4642-818e-8e7dbb4efda5" message="Before S3" />
+					<s3:list-buckets doc:name="List Buckets" doc:id="a84299aa-778b-4965-8b50-402a3dee40a3" config-ref="Amazon_S3_Configuration" />
+					<ee:transform doc:name="Transform Message" doc:id="a1a82b89-183c-4902-a6fc-97d02731aeb0">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Message": "The Amazon S3 up and running",
+	"Access Key": "hgisfhwsnsd"	
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+					<logger level="INFO" doc:name="Logger" doc:id="3c612ace-4fe7-434b-b2b3-a55a3fee553a" message="#[payload]" />
+					<logger level="INFO" doc:name="After S3_Logger" doc:id="1278985f-b6ec-497a-bdb1-6463ed9e7e18" message="After S3" />
+					<error-handler>
+						<on-error-propagate enableNotifications="true" logException="true" doc:name="Copy_of_On Error Propagate" doc:id="553e11a8-f88d-476b-8224-59a2d1e5399c" type="ANY" >
+							<ee:transform doc:name="Copy_of_Transform Message" doc:id="3a6f7520-b8d1-42d8-ab80-c7da1b536d18" >
+								<ee:message >
+									<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"msg": "error in S3 flow",
+	"contact team": "please connect to It support team"
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+							<logger level="INFO" doc:name="Copy_of_Logger" doc:id="ec9a379d-0c19-4a53-9120-2a1e2f29e1ef" message="#[payload]"/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+			</route>
+			<route >
+				<try doc:name="Try" doc:id="75516bdd-27db-465c-8bee-936e18628d6e" >
+					<logger level="INFO" doc:name="SFTP-Logger" doc:id="ae2f0cae-9a2b-4cdc-a9a3-037eefedae6d" message="SFTP-health_checkup" />
+					<logger level="INFO" doc:name="Before SFTP_Logger" doc:id="9fb5b402-4b7f-4dd7-b5f7-c4ad3c6b835a" message="Before SFTP" />
+					<ee:transform doc:name="Transform Message" doc:id="ba1a7fab-08a9-4e86-9d8e-86b5f3fe8192">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Message": "The SFTP server is up and running",
+	"username": "Sftp123"
+	
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+					<logger level="INFO" doc:name="Logger" doc:id="affbb227-4f6a-4a68-a886-bf68f353ae44" message="#[payload]" />
+					<logger level="INFO" doc:name="After SFTP_Logger" doc:id="e12150a5-6f06-456c-9583-7f67824d6b7a" message="After SFTP" />
+				</try>
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="b2a883b9-357d-49d1-b9fa-13142088b8a9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload..payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="End Logger" doc:id="97f0ba58-f0df-45f3-a517-710fd09fe61c" message="End flow"/>
+	</flow>
+</mule>

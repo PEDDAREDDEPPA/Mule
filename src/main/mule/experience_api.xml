@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="scheduler-apiFlow" doc:id="b654dbbd-6fd7-464b-a361-3f24eac6c45c" >
+		<scheduler doc:name="Scheduler" doc:id="5c217bf0-3f71-4b11-a581-6d3aa145808e" >
+			<scheduling-strategy >
+				<cron expression="0 0 13 1/1 * ? *" />
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="Logger" doc:id="4b956a73-a0dd-4bef-b963-3ab655bb601c" />
+		<set-variable value="#[uuid()]" doc:name="Set Variable" doc:id="40bb3cca-8256-4eaf-9b31-d19f7b58aef0" variableName="correlation"/>
+		<logger level="INFO" doc:name="Logger" doc:id="ffe85246-24b6-4a52-95cf-580647864f10" message="#[system.time]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="60e461f4-f618-4803-a1a9-e84ec56163d7" message="http request start"/>
+		<logger level="INFO" doc:name="Logger" doc:id="fc804d9e-b23d-41a8-913d-8355d4e9d920" message="http request end"/>
+		<logger level="INFO" doc:name="Logger" doc:id="51660124-d4c9-449f-a97c-eaa7b37dd149" message="end scheduler"/>
+	</flow>
+</mule>
